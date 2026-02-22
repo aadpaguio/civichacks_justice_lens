@@ -3,3 +3,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+
+# Data files (keep local, do not push)
+data/
+pages/*.csv
