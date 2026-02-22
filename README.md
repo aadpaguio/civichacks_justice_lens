@@ -92,24 +92,43 @@ civichacks_justice_lens/
 ├── app.py              # Entry point (redirects to first page)
 ├── run_app.sh          # Run Streamlit with project venv
 ├── shared_styles.py    # Shared CSS and chart defaults
-├── requirements.txt    # Python dependencies
+├── requirements.txt   # Python dependencies
 ├── pyproject.toml      # Project metadata (uv/pip)
 ├── data/               # CSV datasets (see data/README.md)
-├── pages/              # Streamlit multi-page app
-│   ├── police_misconduct.py
-│   ├── youth_arrests.py
-│   ├── incident_reports.py
-│   └── edward.py       # Data placeholder page
-└── docs/               # Additional documentation
-    └── DOCUMENTATION.md
+└── pages/              # Streamlit multi-page app
+    ├── police_misconduct.py
+    ├── youth_arrests.py
+    ├── incident_reports.py
+    └── edward.py       # Data placeholder page
 ```
 
 ---
 
 ## Documentation
 
-- **[data/README.md](data/README.md)** — Data files and expected columns
-- **[docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)** — Detailed docs: pages, data sources, and development notes
+### Pages (detail)
+
+- **Police Misconduct Reports** (`pages/police_misconduct.py`) — Boston IAD complaints 2011–2020 with youth labels. Data: `data/iad_extracted_with_youth_labels.csv`. Filters: year, youth-related, incident type, allegation. Charts: volume over time, allegation/disposition breakdowns. Key columns: `received_date_x`, `occurred_date_x`, `incident_type_x`, `allegation_x`, `finding_x`, `disposition_x`, `rank_x`, `label`.
+- **Boston Youth Arrests** (`pages/youth_arrests.py`) — Arrest data with juvenile/adult and district/year. Data: `data/arrests_clean.csv` (fallback `pages/arrests_clean.csv`). Filters: juvenile only, year, district. Key columns: `year`, `district_name`, `is_juvenile`, optional `school_hours`. 2025 data is partial; sidebar warns when selected.
+- **Incident Reports** (`pages/incident_reports.py`) — Fall 2025 incidents. Data: `data/ir_fall_2025_cleaned.csv`; optional `data/bpd_complaints_cleaned.csv` for IAD linkage by officer. Key columns: `Date`, `Officer Name`, `Badge Number`, `Event District`; complaints: `officer_name`, `finding`.
+- **Data** (`pages/edward.py`) — Placeholder for extra data tables or uploads.
+
+### Shared styling (`shared_styles.py`)
+
+- **COLORS** — Palette (primary, accent, youth/adult, cards). **Chart defaults** — Plotly background, font, grid. **CSS** — Hero, cards, dataframes, sidebar. **Helpers:** `inject_css()`, `chart_layout()`, `sidebar_page_links()`, `hero_html()`.
+
+### Data
+
+See **[data/README.md](data/README.md)** for required/optional files and expected columns.
+
+### Development
+
+- **Run:** Use the project venv (`./run_app.sh` or `source .venv/bin/activate && streamlit run app.py`) so Plotly is available.
+- **New page:** Add a file under `pages/`, call `inject_css()` and `sidebar_page_links()` from `shared_styles`, set `st.set_page_config()` and build your layout; sidebar links update automatically.
+- **Caching:** CSV loading uses `@st.cache_data`; restart the app or clear cache after changing CSVs.
+- **Dependencies:** `requirements.txt` and `pyproject.toml`; Python ≥3.12.
+
+Data sources (IAD, BPD, arrests, incidents) have their own terms; this app does not host or redistribute them — place CSVs in `data/` as in data/README.md.
 
 ---
 
