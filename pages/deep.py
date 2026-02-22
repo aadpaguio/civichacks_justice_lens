@@ -126,7 +126,7 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 @st.cache_data
 def load_data():
     base = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base, "ir_fall_2025_cleaned.csv")
+    path = os.path.join(base, "..", "data", "ir_fall_2025_cleaned.csv")
     df = pd.read_csv(path)
     if "Date" in df.columns:
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
