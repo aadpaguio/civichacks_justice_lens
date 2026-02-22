@@ -130,9 +130,9 @@ def load_data():
 def main():
     inject_css()
     st.markdown("""
-    <div class="hero">
-        <h1>Police Misconduct Reports</h1>
-        <p>Boston Police Department — Internal Affairs Division (IAD) · Complaints with youth-related labels · 2011–2020. NOTE: Data from 2019 is missing</p>
+    <div class="hero" style="color:#f8fafc!important;">
+        <h1 style="color:#f8fafc!important;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1.85rem;letter-spacing:-0.02em;margin:0;">Police Misconduct Reports</h1>
+        <p style="color:#94a3b8!important;font-size:0.95rem;margin:0.4rem 0 0 0;">Boston Police Department — Internal Affairs Division (IAD) · Complaints with youth-related labels · 2011–2020. NOTE: Data from 2019 is missing</p>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
@@ -208,7 +208,7 @@ def main():
     )
     fig_time.update_layout(title=dict(text=""), margin=dict(t=24, b=40), xaxis=dict(dtick=1), showlegend=False)
     chart_layout(fig_time)
-    st.plotly_chart(fig_time, use_container_width=True)
+    st.plotly_chart(fig_time, width="stretch")
 
     st.markdown('<p class="section-title">Allegation types (unique IAD cases)</p>', unsafe_allow_html=True)
     alg_data = data.loc[data["allegation_normalized"] != ""]
@@ -222,7 +222,7 @@ def main():
     )
     fig_alg.update_layout(title=dict(text=""), margin=dict(t=24, b=40), yaxis=dict(autorange="reversed"), showlegend=False)
     chart_layout(fig_alg, height=400)
-    st.plotly_chart(fig_alg, use_container_width=True)
+    st.plotly_chart(fig_alg, width="stretch")
 
     st.markdown('<p class="section-title">Finding and disposition (unique IAD cases)</p>', unsafe_allow_html=True)
     st.caption("Two outcome fields: **Finding** = investigative result (e.g. Sustained, Exonerated); **Disposition** = formal administrative outcome. Each pie shows how many unique IAD cases have that value (a case can appear in more than one slice if it has multiple officers/outcomes).")
@@ -236,7 +236,7 @@ def main():
         )
         fig_find.update_layout(margin=dict(t=48, b=24), showlegend=True, legend=dict(orientation="h"))
         chart_layout(fig_find)
-        st.plotly_chart(fig_find, use_container_width=True)
+        st.plotly_chart(fig_find, width="stretch")
     with c2:
         disp_iads = data.assign(disposition=data["disposition_x"].replace("", "Unknown")).groupby("disposition")["ia_no"].nunique()
         fig_disp = px.pie(
@@ -246,7 +246,7 @@ def main():
         )
         fig_disp.update_layout(margin=dict(t=48, b=24), showlegend=True, legend=dict(orientation="h"))
         chart_layout(fig_disp)
-        st.plotly_chart(fig_disp, use_container_width=True)
+        st.plotly_chart(fig_disp, width="stretch")
 
     st.markdown('<p class="section-title">Youth-related vs other (unique IAD cases by allegation type)</p>', unsafe_allow_html=True)
     youth_data = data[(data["label"] == "YES") & (data["allegation_normalized"] != "") & (data["allegation_normalized"].notna())]
@@ -269,7 +269,7 @@ def main():
                 xaxis_title_standoff=12,
             )
             chart_layout(fig_y, height=340)
-            st.plotly_chart(fig_y, use_container_width=True)
+            st.plotly_chart(fig_y, width="stretch")
         else:
             st.info("No youth-related IAD cases in current filters.")
     with col_b:
@@ -287,7 +287,7 @@ def main():
                 xaxis_title_standoff=12,
             )
             chart_layout(fig_o, height=340)
-            st.plotly_chart(fig_o, use_container_width=True)
+            st.plotly_chart(fig_o, width="stretch")
 
     st.markdown('<p class="section-title">Officer rank (unique IAD cases per rank)</p>', unsafe_allow_html=True)
     rank_iads = data.assign(rank=data["rank_x"].replace("", "Unknown")).groupby("rank")["ia_no"].nunique()
@@ -308,7 +308,7 @@ def main():
     )
     fig_rank.update_layout(title=dict(text=""), margin=dict(t=24, b=60), xaxis_tickangle=-45)
     chart_layout(fig_rank, height=360)
-    st.plotly_chart(fig_rank, use_container_width=True)
+    st.plotly_chart(fig_rank, width="stretch")
 
     # Missing entries (filtered data)
     missing_allegation = (data["allegation_x"].isna() | (data["allegation_x"].astype(str).str.strip().isin(["", "nan"]))).sum()

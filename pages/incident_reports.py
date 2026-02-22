@@ -160,7 +160,7 @@ if "Weapon/Force Involved" in df.columns:
         with w2:
             st.dataframe(
                 weapon_counts.head(15).reset_index().rename(columns={"index": "Type", "Weapon/Force Involved": "Count"}),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
     else:
@@ -188,7 +188,7 @@ if iad_lookup and "Officer" in df.columns:
         })
     if rows:
         iad_df = pd.DataFrame(rows).sort_values("IAD complaints", ascending=False).head(20)
-        st.dataframe(iad_df, use_container_width=True, hide_index=True)
+        st.dataframe(iad_df, width="stretch", hide_index=True)
         pct = 100 * len(rows) / officer_incidents.shape[0] if officer_incidents.shape[0] else 0
         st.caption(f"**{len(rows)}** of **{officer_incidents.shape[0]}** unique officers in this data have at least one IAD complaint on record ({pct:.0f}%).")
     else:
@@ -215,7 +215,7 @@ if "Offense Latitude" in df.columns and "Offense Longitude" in df.columns:
             st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view, map_style="light", tooltip=False))
         except Exception:
             map_df = map_df.rename(columns={"Offense Latitude": "lat", "Offense Longitude": "lon"})
-            st.map(map_df, use_container_width=True)
+            st.map(map_df, width="stretch")
     else:
         st.caption("No valid coordinates to display.")
 

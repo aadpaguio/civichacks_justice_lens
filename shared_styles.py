@@ -34,6 +34,12 @@ _SHARED_CSS_BODY = r"""
 .main .block-container, .block-container { padding-top: 3.5rem; padding-bottom: 3rem; max-width: 1400px; color: #0f172a; }
 [data-testid="stHeader"] { padding-top: 0.5rem; padding-bottom: 0.5rem; }
 .block-container p, .block-container span, .block-container label { color: #0f172a !important; }
+.block-container .hero, .block-container .hero p, .block-container .hero h1, .block-container .hero span { color: #f8fafc !important; }
+.block-container .hero p { color: #94a3b8 !important; }
+.hero, .hero *, .hero h1, .hero p, [data-testid="stMarkdown"] .hero, [data-testid="stMarkdown"] .hero * {
+    color: #f8fafc !important;
+}
+.hero p, [data-testid="stMarkdown"] .hero p { color: #94a3b8 !important; }
 .hero {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     margin: -1rem -1rem 0 -1rem;
@@ -41,15 +47,14 @@ _SHARED_CSS_BODY = r"""
     border-radius: 0 0 20px 20px;
     box-shadow: 0 10px 40px rgba(15,23,42,0.2);
 }
-.hero h1 {
-    color: #f8fafc;
+.hero h1, [data-testid="stMarkdown"] .hero h1 {
+    color: #f8fafc !important;
     font-family: 'DM Sans', sans-serif;
     font-weight: 700;
     font-size: 1.85rem;
     letter-spacing: -0.02em;
     margin: 0;
 }
-.block-container .hero p, .hero p { color: #94a3b8 !important; font-size: 0.95rem; margin: 0.4rem 0 0 0; }
 .hero .accent-bar {
     width: 48px;
     height: 3px;
@@ -153,10 +158,14 @@ def chart_layout(fig, height=None):
 
 
 def hero_html(title: str, tagline: str = "", with_accent_bar: bool = True):
-    """Return HTML for the hero block. Optionally include accent bar (from deep)."""
+    """Return HTML for the hero block. Light title/tagline via inline styles so they stay readable."""
     accent = '<div class="accent-bar"></div>' if with_accent_bar else ""
-    tag = f'<p>{tagline}</p>' if tagline else ""
-    return f'<div class="hero"><h1>{title}</h1>{tag}{accent}</div>'
+    tag = f'<p style="color:#94a3b8!important;font-size:0.95rem;margin:0.4rem 0 0 0;">{tagline}</p>' if tagline else ""
+    return (
+        f'<div class="hero" style="color:#f8fafc!important;">'
+        f'<h1 style="color:#f8fafc!important;font-family:\'DM Sans\',sans-serif;font-weight:700;font-size:1.85rem;letter-spacing:-0.02em;margin:0;">{title}</h1>'
+        f'{tag}{accent}</div>'
+    )
 
 
 def sidebar_page_links():
