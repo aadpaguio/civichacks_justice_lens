@@ -1,8 +1,10 @@
 """
 Dashboard for cleaned IR Fall 2025 incident data.
 Professional, distinctive design.
+Connected to IAD complaints data when available (by officer name).
 """
 import os
+import glob
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -132,8 +134,39 @@ def load_data():
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     return df
 
+
+@st.cache_data
+def load_iad_lookups():
+    """Load cleaned BPD complaints; return (total_complaints_per_officer, sustained_complaints_per_officer) by normalized name."""
+    base = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(base, "..", "data")
+    cleaned_path = os.path.join(data_dir, "bpd_complaints_cleaned.csv")
+    if not os.path.exists(cleaned_path):
+        return None, None
+    cp = pd.read_csv(cleaned_path)
+    if "officer_name" not in cp.columns or cp["officer_name"].empty:
+        return None, None
+
+    def norm(s):
+        return " ".join(str(s).lower().strip().split())
+
+    cp = cp.dropna(subset=["officer_name"])
+    cp["key"] = cp["officer_name"].astype(str).apply(norm)
+    total = cp["key"].value_counts().to_dict()
+    sustained = {}
+    if "finding" in cp.columns:
+        sustained = cp[cp["finding"] == "Sustained"]["key"].value_counts().to_dict()
+    return total, sustained
+
+
+def normalize_name(s):
+    """Same normalization as IAD lookup for matching."""
+    return " ".join(str(s).lower().strip().split())
+
+
 df_raw = load_data()
 df = df_raw.copy()
+iad_lookup, iad_sustained_lookup = load_iad_lookups()
 
 # Sidebar
 with st.sidebar:
@@ -185,18 +218,33 @@ n_officers = df["Officer Name"].nunique() if "Officer Name" in df.columns else 0
 n_districts = df["Event District"].nunique() if "Event District" in df.columns else 0
 with_weapon = (df["Weapon/Force Involved"].notna() & (df["Weapon/Force Involved"].astype(str).str.len() > 0)).sum() if "Weapon/Force Involved" in df.columns else 0
 total_charges = int(df["Total Charges"].sum()) if "Total Charges" in df.columns else 0
+# Officers with ≥1 IAD complaint and with ≥1 sustained (when complaints data is loaded)
+officers_with_complaints = 0
+officers_with_sustained = 0
+if iad_lookup and "Officer Name" in df.columns:
+    unique_names = df["Officer Name"].astype(str).str.strip().unique()
+    for n in unique_names:
+        if not n or n.lower() == "nan":
+            continue
+        k = normalize_name(n)
+        if iad_lookup.get(k, 0) >= 1:
+            officers_with_complaints += 1
+        if iad_sustained_lookup and iad_sustained_lookup.get(k, 0) >= 1:
+            officers_with_sustained += 1
 
-m1, m2, m3, m4, m5 = st.columns(5)
-for col, (label, value) in zip(
-    [m1, m2, m3, m4, m5],
-    [
-        ("Total incidents", f"{n_incidents:,}"),
-        ("Unique officers", f"{n_officers:,}"),
-        ("Districts", f"{n_districts}"),
-        ("Weapon/force", f"{with_weapon:,}"),
-        ("Total charges", f"{total_charges:,}"),
-    ],
-):
+metrics = [
+    ("Total incidents", f"{n_incidents:,}"),
+    ("Unique officers", f"{n_officers:,}"),
+    ("Districts", f"{n_districts}"),
+    ("Weapon/force", f"{with_weapon:,}"),
+    ("Total charges", f"{total_charges:,}"),
+]
+if iad_lookup:
+    metrics.append(("Officers w/ IAD complaint", f"{officers_with_complaints}"))
+if iad_sustained_lookup:
+    metrics.append(("Officers w/ sustained", f"{officers_with_sustained}"))
+m_cols = st.columns(len(metrics))
+for col, (label, value) in zip(m_cols, metrics):
     with col:
         st.markdown(
             f'<div class="metric-card">'
@@ -205,6 +253,10 @@ for col, (label, value) in zip(
             f'</div>',
             unsafe_allow_html=True,
         )
+
+if iad_lookup and n_officers:
+    pct = 100 * officers_with_complaints / n_officers
+    st.caption(f"**IAD data (2011–2024):** {officers_with_complaints} officers in this dataset have at least one complaint on record ({pct:.0f}% of unique officers). Sustained = complaint was upheld by Internal Affairs.")
 
 # Charts
 st.markdown('<p class="section-title">Trends & distribution</p>', unsafe_allow_html=True)
@@ -245,36 +297,33 @@ if "Weapon/Force Involved" in df.columns:
     else:
         st.caption("No weapon/force types to display after filtering.")
 
-# Heatmap: District × Hour (or Day of week)
-st.markdown('<p class="section-title">Heatmap — incidents by district & time</p>', unsafe_allow_html=True)
-heat_df = df.copy()
-if "Date" in heat_df.columns and "Event District" in heat_df.columns:
-    heat_df["Date"] = pd.to_datetime(heat_df["Date"], errors="coerce")
-    heat_df = heat_df.dropna(subset=["Date", "Event District"])
-    heat_df["hour"] = heat_df["Date"].dt.hour
-    heat_df["district"] = heat_df["Event District"].astype(str)
-    heat_df = heat_df[~heat_df["district"].isin(["", "nan"])]
-    agg = heat_df.groupby(["district", "hour"]).size().reset_index(name="incidents")
-    if len(agg) > 0:
-        district_order = agg.groupby("district")["incidents"].sum().sort_values(ascending=False).index.tolist()
-        heat = (
-            alt.Chart(agg)
-            .mark_rect()
-            .encode(
-                x=alt.X("hour:O", title="Hour of day", axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("district:N", title="District", sort=district_order),
-                color=alt.Color("incidents:Q", title="Incidents", scale=alt.Scale(scheme="oranges")),
-                tooltip=["district", "hour", "incidents"],
-            )
-            .properties(height=400)
-            .configure_axis(labelColor="#94a3b8", titleColor="#cbd5e1")
-            .configure_legend(labelColor="#94a3b8", titleColor="#cbd5e1")
-        )
-        st.altair_chart(heat, use_container_width=True)
+# Officers with IAD history — same matching logic, show only badge number
+if iad_lookup and "Officer" in df.columns:
+    st.markdown('<p class="section-title">Officers with IAD history</p>', unsafe_allow_html=True)
+    st.caption("Officers in this incident data who have at least one IAD complaint on record (2011–2024).")
+    officer_incidents = df["Officer"].value_counts()
+    rows = []
+    for officer_display, inc_count in officer_incidents.items():
+        name_part = officer_display.split(" #")[0].strip() if " #" in officer_display else officer_display
+        badge_part = officer_display.split(" #", 1)[1].strip() if " #" in officer_display else ""
+        key = normalize_name(name_part)
+        iad_count = iad_lookup.get(key, 0)
+        if iad_count < 1:
+            continue
+        sustained = (iad_sustained_lookup or {}).get(key, 0)
+        rows.append({
+            "Badge": f"#{badge_part}" if badge_part else "",
+            "Incidents": inc_count,
+            "IAD complaints": iad_count,
+            "Sustained": sustained,
+        })
+    if rows:
+        iad_df = pd.DataFrame(rows).sort_values("IAD complaints", ascending=False).head(20)
+        st.dataframe(iad_df, use_container_width=True, hide_index=True)
+        pct = 100 * len(rows) / officer_incidents.shape[0] if officer_incidents.shape[0] else 0
+        st.caption(f"**{len(rows)}** of **{officer_incidents.shape[0]}** unique officers in this data have at least one IAD complaint on record ({pct:.0f}%).")
     else:
-        st.caption("No data for heatmap.")
-else:
-    st.caption("Date and District required for heatmap.")
+        st.caption("No officers in the current filter have IAD complaints on record.")
 
 # Map — density heatmap style with pydeck
 if "Offense Latitude" in df.columns and "Offense Longitude" in df.columns:
