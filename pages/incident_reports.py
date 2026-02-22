@@ -5,9 +5,7 @@ Uses shared Justice Lens styling (arnald-based). Connected to IAD complaints dat
 import os
 import streamlit as st
 import pandas as pd
-import altair as alt
-
-from shared_styles import inject_css, hero_html, CHART_FONT_COLOR, CHART_GRID_COLOR
+from shared_styles import inject_css, hero_html, sidebar_page_links
 
 st.set_page_config(
     page_title="Justice Lens — IR Dashboard",
@@ -22,7 +20,8 @@ inject_css()
 @st.cache_data
 def load_data():
     base = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base, "ir_fall_2025_cleaned.csv")
+    data_dir = os.path.join(base, "..", "data")
+    path = os.path.join(data_dir, "ir_fall_2025_cleaned.csv")
     df = pd.read_csv(path)
     if "Date" in df.columns:
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
@@ -70,6 +69,7 @@ iad_lookup, iad_sustained_lookup = load_iad_lookups()
 
 # Sidebar
 with st.sidebar:
+    sidebar_page_links()
     st.markdown("### ◉ Justice Lens")
     st.caption("Incident reports · Fall 2025")
     st.divider()
@@ -193,49 +193,6 @@ if iad_lookup and "Officer" in df.columns:
         st.caption(f"**{len(rows)}** of **{officer_incidents.shape[0]}** unique officers in this data have at least one IAD complaint on record ({pct:.0f}%).")
     else:
         st.caption("No officers in the current filter have IAD complaints on record.")
-
-# Heatmap: District × Hour (or Day of week)
-st.markdown('<p class="section-title">Heatmap — incidents by district & time</p>', unsafe_allow_html=True)
-heat_df = df.copy()
-if "Date" in heat_df.columns and "Event District" in heat_df.columns:
-    heat_df["Date"] = pd.to_datetime(heat_df["Date"], errors="coerce")
-    heat_df = heat_df.dropna(subset=["Date", "Event District"])
-    heat_df["hour"] = heat_df["Date"].dt.hour
-    heat_df["district"] = heat_df["Event District"].astype(str)
-    heat_df = heat_df[~heat_df["district"].isin(["", "nan"])]
-    agg = heat_df.groupby(["district", "hour"]).size().reset_index(name="incidents")
-    if len(agg) > 0:
-        district_order = agg.groupby("district")["incidents"].sum().sort_values(ascending=False).index.tolist()
-        heat = (
-            alt.Chart(agg)
-            .mark_rect()
-            .encode(
-                x=alt.X("hour:O", title="Hour of day", axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("district:N", title="District", sort=district_order),
-                color=alt.Color("incidents:Q", title="Incidents", scale=alt.Scale(scheme="oranges")),
-                tooltip=["district", "hour", "incidents"],
-            )
-            .properties(height=400, background="#ffffff")
-            .configure_view(fill="#ffffff")
-            .configure_axis(
-                labelColor=CHART_FONT_COLOR,
-                titleColor=CHART_FONT_COLOR,
-                gridColor=CHART_GRID_COLOR,
-                labelFontSize=11,
-                titleFontSize=12,
-            )
-            .configure_legend(
-                labelColor=CHART_FONT_COLOR,
-                titleColor=CHART_FONT_COLOR,
-                labelFontSize=11,
-                titleFontSize=12,
-            )
-        )
-        st.altair_chart(heat, use_container_width=True)
-    else:
-        st.caption("No data for heatmap.")
-else:
-    st.caption("Date and District required for heatmap.")
 
 # Map — density heatmap style with pydeck
 if "Offense Latitude" in df.columns and "Offense Longitude" in df.columns:

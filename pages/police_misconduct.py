@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
-from shared_styles import inject_css, chart_layout, COLORS
+from shared_styles import inject_css, chart_layout, COLORS, sidebar_page_links
 
 # Page config
 st.set_page_config(page_title="Police Misconduct Reports", layout="wide", initial_sidebar_state="expanded")
@@ -144,6 +144,7 @@ def main():
 
     # ---- Sidebar filters (data is already 2011-2020) ----
     with st.sidebar:
+        sidebar_page_links()
         st.subheader("Filters")
         year_range = st.slider("Year received", 2011, 2020, (2011, 2020), 1)
         youth_filter = st.selectbox("Youth-related", ["All", "Yes", "No"], index=0)

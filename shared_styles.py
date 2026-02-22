@@ -93,14 +93,15 @@ div[data-testid="stDataFrame"] {
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06);
 }
 [data-testid="stSidebar"] { background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); }
-[data-testid="stSidebar"] .stMarkdown { color: #94a3b8; }
-[data-testid="stSidebar"] h2 { color: #f8fafc !important; font-size: 0.95rem !important; }
-[data-testid="stSidebar"] label, [data-testid="stSidebar"] .stSlider label { color: #cbd5e1 !important; }
+[data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: #cbd5e1 !important; }
+[data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #f8fafc !important; font-size: 0.95rem !important; }
+[data-testid="stSidebar"] label, [data-testid="stSidebar"] .stSlider label, [data-testid="stSidebar"] [data-testid="stWidgetLabel"] { color: #cbd5e1 !important; }
 [data-testid="stSidebar"] .stCaption { color: #94a3b8 !important; }
-[data-testid="stSidebarNav"] ul[data-testid="stSidebarNavItems"] li:first-child { display: none !important; }
-[data-testid="stSidebarNav"] a[data-testid="stSidebarNavLink"], [data-testid="stSidebarNav"] a[data-testid="stSidebarNavLink"] span { color: #e2e8f0 !important; }
-[data-testid="stSidebarNav"] a[data-testid="stSidebarNavLink"]:hover, [data-testid="stSidebarNav"] a[data-testid="stSidebarNavLink"]:hover span { color: #f8fafc !important; }
-[data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] a { color: #cbd5e1 !important; }
+[data-testid="stSidebar"] a { color: #e2e8f0 !important; }
+[data-testid="stSidebar"] a:hover { color: #f8fafc !important; }
+[data-testid="stSidebar"] .stSelectbox label, [data-testid="stSidebar"] .stMultiSelect label, [data-testid="stSidebar"] .stSlider label { color: #cbd5e1 !important; }
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p { color: #cbd5e1 !important; }
+[data-testid="stSidebar"] .stAlert, [data-testid="stSidebar"] [data-testid="stAlert"] { color: #cbd5e1 !important; }
 .footer { text-align: center; color: #64748b; font-size: 0.8rem; margin-top: 2rem; padding: 1rem; }
 """
 
@@ -155,3 +156,13 @@ def hero_html(title: str, tagline: str = "", with_accent_bar: bool = True):
     accent = '<div class="accent-bar"></div>' if with_accent_bar else ""
     tag = f'<p>{tagline}</p>' if tagline else ""
     return f'<div class="hero"><h1>{title}</h1>{tag}{accent}</div>'
+
+
+def sidebar_page_links():
+    """Render sidebar navigation with Title Case page names (call from each page)."""
+    st.sidebar.markdown("### Pages")
+    st.sidebar.page_link("pages/police_misconduct.py", label="Police Misconduct")
+    st.sidebar.page_link("pages/youth_arrests.py", label="Youth Arrests")
+    st.sidebar.page_link("pages/incident_reports.py", label="Incident Reports")
+    st.sidebar.page_link("pages/edward.py", label="Edward")
+    st.sidebar.divider()
