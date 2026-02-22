@@ -44,7 +44,7 @@ def main():
     sidebar_page_links()
     st.sidebar.header("Filters")
 
-    show_juvenile_only = st.sidebar.toggle("Juvenile Only", value=False)
+    show_juvenile_only = st.sidebar.toggle("Youth Only", value=False)
 
     year_options = ["All Years"] + sorted(df_raw["year"].dropna().unique().astype(int).tolist())
     selected_year = st.sidebar.selectbox("Year", options=year_options, index=0)
@@ -79,7 +79,7 @@ def main():
         else "—"
     )
 
-    title_suffix = "— Juvenile Only" if show_juvenile_only else "— All Arrests"
+    title_suffix = "— Youth Only" if show_juvenile_only else "— All Arrests"
     chart_color = COLOR_JUVENILE_ONLY if show_juvenile_only else COLOR_ALL
 
     # --- MAIN PAGE ---
@@ -93,7 +93,7 @@ def main():
         school_pct = (sh == True).mean() * 100 if len(sh) else 0
         m1, m2, m3 = st.columns(3)
         with m1:
-            st.metric("Juvenile Arrests", f"{total_count:,}")
+            st.metric("Youth Arrests", f"{total_count:,}")
         with m2:
             st.metric("Most Affected District", str(most_affected))
         with m3:
@@ -103,13 +103,13 @@ def main():
         with m1:
             st.metric("Total Arrests", f"{total_count:,}")
         with m2:
-            st.metric("Juvenile Arrests", f"{juvenile_count:,}")
+            st.metric("Youth Arrests", f"{juvenile_count:,}")
         with m3:
-            st.metric("% Juvenile", f"{pct_juvenile:.1f}%")
+            st.metric("% Youth", f"{pct_juvenile:.1f}%")
         with m4:
             st.metric("Most Affected District", str(most_affected))
     if not show_juvenile_only:
-        st.caption("Race and trend charts below always show Juvenile vs Adult for comparison.")
+        st.caption("Race and trend charts below always show Youth vs Adult for comparison.")
 
     st.markdown('<p class="section-title">Where: Arrests by District</p>', unsafe_allow_html=True)
     df_dist = filtered_df[filtered_df["district_name"].notna()].copy()
@@ -130,7 +130,7 @@ def main():
         )
         fig_dist.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
         chart_layout(fig_dist, height=400)
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.plotly_chart(fig_dist, width="stretch")
     else:
         st.info("No district data for current filters.")
 
@@ -144,17 +144,17 @@ def main():
         dist_compare,
         x="district_name",
         y="juv_pct",
-        title="Juvenile % of All Arrests by District",
-        labels={"juv_pct": "% Juvenile", "district_name": "District"},
+        title="Youth % of All Arrests by District",
+        labels={"juv_pct": "% Youth", "district_name": "District"},
         color="juv_pct",
         color_continuous_scale="Reds",
     )
     fig_disp.update_layout(xaxis_tickangle=-45, showlegend=False)
     fig_disp.update_traces(
-        hovertemplate="<b>%{x}</b><br>Juvenile: %{y:.1f}%<extra></extra>"
+        hovertemplate="<b>%{x}</b><br>Youth: %{y:.1f}%<extra></extra>"
     )
     chart_layout(fig_disp, height=350)
-    st.plotly_chart(fig_disp, use_container_width=True)
+    st.plotly_chart(fig_disp, width="stretch")
     st.caption("Which districts arrest the most youth relative to their total arrest volume.")
 
     st.markdown('<p class="section-title">Who: Demographics</p>', unsafe_allow_html=True)
@@ -169,7 +169,7 @@ def main():
 <div style='background:rgba(232,93,74,0.08); border-left:3px solid #e85d4a;
 padding:12px 16px; border-radius:8px; margin-bottom:16px; font-family: DM Sans, sans-serif'>
 <span style='font-size:28px; font-weight:bold; color:#e85d4a'>{black_pct_demo:.1f}%</span>
-<span style='color:#64748b; margin-left:10px'>of juvenile arrestees are Black —
+<span style='color:#64748b; margin-left:10px'>of youth arrestees are Black —
 in a city that is ~25% Black (3.1× disparity)</span>
 </div>
 """, unsafe_allow_html=True)
@@ -179,7 +179,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
     with c1:
         # Exception: always show both juvenile and adult, highlight juvenile
         race_counts = filtered_df.groupby(["race_desc", "is_juvenile"]).size().reset_index(name="count")
-        race_counts["juvenile_label"] = race_counts["is_juvenile"].map(lambda x: "Juvenile" if x else "Adult")
+        race_counts["juvenile_label"] = race_counts["is_juvenile"].map(lambda x: "Youth" if x else "Adult")
         if not race_counts.empty:
             fig_race = px.bar(
                 race_counts,
@@ -187,17 +187,17 @@ in a city that is ~25% Black (3.1× disparity)</span>
                 y="race_desc",
                 color="juvenile_label",
                 orientation="h",
-                color_discrete_map={"Adult": COLOR_ADULT_MUTED, "Juvenile": COLOR_JUVENILE_HIGHLIGHT},
-                title="Race breakdown — Juvenile vs Adult",
+                color_discrete_map={"Adult": COLOR_ADULT_MUTED, "Youth": COLOR_JUVENILE_HIGHLIGHT},
+                title="Race breakdown — Youth vs Adult",
             )
             fig_race.update_layout(yaxis={"categoryorder": "total ascending"})
             chart_layout(fig_race, height=300)
             for d in fig_race.data:
-                if d.name == "Juvenile":
+                if d.name == "Youth":
                     d.marker.update(line=dict(width=2, color="#333"))
                 else:
                     d.opacity = 0.75
-            st.plotly_chart(fig_race, use_container_width=True)
+            st.plotly_chart(fig_race, width="stretch")
         else:
             st.write("No data")
 
@@ -208,14 +208,14 @@ in a city that is ~25% Black (3.1× disparity)</span>
                 df_juv,
                 x="age",
                 nbins=9,
-                title=f"Age Distribution of Juvenile Arrests {title_suffix}",
+                title=f"Age Distribution of Youth Arrests {title_suffix}",
                 color_discrete_sequence=[chart_color],
             )
             fig_age.update_layout(showlegend=False)
             chart_layout(fig_age, height=300)
-            st.plotly_chart(fig_age, use_container_width=True)
+            st.plotly_chart(fig_age, width="stretch")
         else:
-            st.write("No juvenile age data (10–18)")
+            st.write("No youth age data (10–18)")
 
     with c3:
         gender_counts = filtered_df.groupby("gender_desc", dropna=False).size().reset_index(name="count")
@@ -228,7 +228,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
                 color_discrete_sequence=px.colors.qualitative.Set3,
             )
             chart_layout(fig_gender, height=300)
-            st.plotly_chart(fig_gender, use_container_width=True)
+            st.plotly_chart(fig_gender, width="stretch")
         else:
             st.write("No data")
     st.markdown('<p class="section-title">When: Time Patterns</p>', unsafe_allow_html=True)
@@ -242,7 +242,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
                     year_counts,
                     x="year",
                     y="count",
-                    title="Arrest Trend Over Time — Juvenile Only",
+                    title="Arrest Trend Over Time — Youth Only",
                 )
                 fig_year.update_traces(line_color=chart_color, line_width=3)
                 fig_year.update_layout(showlegend=False)
@@ -258,25 +258,25 @@ in a city that is ~25% Black (3.1× disparity)</span>
                         font=dict(size=10, color="#aaa"),
                         ax=40, ay=-30
                     )
-                st.plotly_chart(fig_year, use_container_width=True)
+                st.plotly_chart(fig_year, width="stretch")
             else:
                 st.write("No data")
         else:
             # Show both juvenile and adult, highlight juvenile
             year_counts = df.groupby(["year", "is_juvenile"]).size().reset_index(name="count")
-            year_counts["juvenile_label"] = year_counts["is_juvenile"].map(lambda x: "Juvenile" if x else "Adult")
+            year_counts["juvenile_label"] = year_counts["is_juvenile"].map(lambda x: "Youth" if x else "Adult")
             if not year_counts.empty:
                 fig_year = px.line(
                     year_counts,
                     x="year",
                     y="count",
                     color="juvenile_label",
-                    color_discrete_map={"Adult": COLOR_ADULT_MUTED, "Juvenile": COLOR_JUVENILE_HIGHLIGHT},
-                    title="Arrest Trend Over Time — Juvenile vs Adult",
+                    color_discrete_map={"Adult": COLOR_ADULT_MUTED, "Youth": COLOR_JUVENILE_HIGHLIGHT},
+                    title="Arrest Trend Over Time — Youth vs Adult",
                 )
                 chart_layout(fig_year, height=350)
                 for i, d in enumerate(fig_year.data):
-                    if d.name == "Juvenile":
+                    if d.name == "Youth":
                         d.line = dict(width=4)
                     else:
                         d.line = dict(width=2, dash="dot")
@@ -291,7 +291,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
                         font=dict(size=10, color="#aaa"),
                         ax=40, ay=-30
                     )
-                st.plotly_chart(fig_year, use_container_width=True)
+                st.plotly_chart(fig_year, width="stretch")
             else:
                 st.write("No data")
 
@@ -311,7 +311,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
             )
             fig_time.update_layout(xaxis={"categoryorder": "array", "categoryarray": time_order}, showlegend=False)
             chart_layout(fig_time, height=350)
-            st.plotly_chart(fig_time, use_container_width=True)
+            st.plotly_chart(fig_time, width="stretch")
         else:
             st.write("No data")
     st.markdown('<p class="section-title">What: Charge Types</p>', unsafe_allow_html=True)
@@ -319,7 +319,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
 
     with s1:
         sev_df = df[df["charge_severity"].notna()].copy()
-        sev_df["label"] = sev_df["is_juvenile"].map({True: "Juvenile", False: "Adult"})
+        sev_df["label"] = sev_df["is_juvenile"].map({True: "Youth", False: "Adult"})
         sev_counts = sev_df.groupby(["charge_severity", "label"]).size().reset_index(name="count")
         sev_counts["total"] = sev_counts.groupby("label")["count"].transform("sum")
         sev_counts["pct"] = (sev_counts["count"] / sev_counts["total"] * 100).round(1)
@@ -330,7 +330,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
             y="pct",
             color="charge_severity",
             barmode="stack",
-            title="Charge Severity — Juvenile vs Adult",
+            title="Charge Severity — Youth vs Adult",
             labels={"pct": "% of arrests", "label": ""},
             color_discrete_map={
                 "Serious": "#e85d4a",
@@ -339,7 +339,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
             }
         )
         chart_layout(fig_sev, height=350)
-        st.plotly_chart(fig_sev, use_container_width=True)
+        st.plotly_chart(fig_sev, width="stretch")
 
     with s2:
         top_charges = filtered_df["charge_desc"].value_counts().head(10).reset_index()
@@ -355,7 +355,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
             )
             fig_charge.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
             chart_layout(fig_charge, height=350)
-            st.plotly_chart(fig_charge, use_container_width=True)
+            st.plotly_chart(fig_charge, width="stretch")
         else:
             st.write("No data")
     st.markdown('<p class="section-title">School Hours</p>', unsafe_allow_html=True)
@@ -364,7 +364,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
     juv_school = int(df_juv_only["school_hours"].sum()) if juv_total > 0 else 0
     pct_school = (100.0 * juv_school / juv_total) if juv_total else 0
     st.metric(
-        "Juvenile arrests during school hours (Mon–Fri 8am–3pm)",
+        "Youth arrests during school hours (Mon–Fri 8am–3pm)",
         f"{pct_school:.1f}%",
     )
 
@@ -388,7 +388,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
         )
         fig_school.update_layout(xaxis_tickangle=-45)
         chart_layout(fig_school, height=350)
-        st.plotly_chart(fig_school, use_container_width=True)
+        st.plotly_chart(fig_school, width="stretch")
 
     st.markdown("**Are school hours arrests more serious?**")
     juv_school_sev = df_juv_only[df_juv_only["charge_severity"].notna()].copy()
@@ -405,7 +405,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
         y="pct",
         color="charge_severity",
         barmode="stack",
-        title="Charge Severity — School Hours vs Outside School Hours (Juvenile Only)",
+        title="Charge Severity — School Hours vs Outside School Hours (Youth Only)",
         labels={"pct": "% of arrests", "label": ""},
         color_discrete_map={
             "Serious": "#e85d4a",
@@ -414,7 +414,7 @@ in a city that is ~25% Black (3.1× disparity)</span>
         }
     )
     chart_layout(fig_school_sev, height=300)
-    st.plotly_chart(fig_school_sev, use_container_width=True)
+    st.plotly_chart(fig_school_sev, width="stretch")
     st.caption("School hours defined as Monday–Friday, 8am–3pm.")
 
     st.markdown(
