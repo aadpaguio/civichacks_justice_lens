@@ -31,7 +31,8 @@ CHART_GRID_COLOR = "#e2e8f0"
 # Shared CSS: arnald base + deep's chart-card padding/shadow and dataframe styling
 _SHARED_CSS_BODY = r"""
 .stApp { background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%); }
-.main .block-container, .block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1400px; color: #0f172a; }
+.main .block-container, .block-container { padding-top: 3.5rem; padding-bottom: 3rem; max-width: 1400px; color: #0f172a; }
+[data-testid="stHeader"] { padding-top: 0.5rem; padding-bottom: 0.5rem; }
 .block-container p, .block-container span, .block-container label { color: #0f172a !important; }
 .hero {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -164,5 +165,4 @@ def sidebar_page_links():
     st.sidebar.page_link("pages/police_misconduct.py", label="Police Misconduct")
     st.sidebar.page_link("pages/youth_arrests.py", label="Youth Arrests")
     st.sidebar.page_link("pages/incident_reports.py", label="Incident Reports")
-    st.sidebar.page_link("pages/edward.py", label="Edward")
     st.sidebar.divider()
