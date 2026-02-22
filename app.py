@@ -12,4 +12,4 @@ st.set_page_config(
 )
 
 # No main page content — go straight to first dashboard
-st.switch_page("pages/arnald.py")
+st.switch_page("pages/police_misconduct.py")
