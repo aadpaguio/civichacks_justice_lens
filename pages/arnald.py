@@ -7,28 +7,12 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
+from shared_styles import inject_css, chart_layout, COLORS
+
 # Page config
 st.set_page_config(page_title="Police Misconduct Reports", layout="wide", initial_sidebar_state="expanded")
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "iad_extracted_with_youth_labels.csv"
-
-# Palette: editorial / dashboard
-COLORS = {
-    "primary": "#0f172a",
-    "secondary": "#1e293b",
-    "accent": "#0ea5e9",
-    "accent_soft": "#38bdf8",
-    "youth": "#dc2626",
-    "adult": "#059669",
-    "neutral": "#64748b",
-    "card_bg": "#f8fafc",
-    "border": "#e2e8f0",
-}
-CHART_BG = "#ffffff"
-FONT_FAMILY = "'DM Sans', 'Segoe UI', system-ui, sans-serif"
-# Dark text for all chart elements (readable on white)
-CHART_FONT_COLOR = "#0f172a"
-CHART_GRID_COLOR = "#e2e8f0"
 
 # Map messy allegation labels to canonical ones (for display, especially youth)
 ALLEGATION_LABEL_MAP = {
@@ -99,109 +83,6 @@ def _normalize_allegation(raw):
             return canonical
     return s
 
-def _chart_layout(fig, height=None):
-    """Apply readable dark text and white background to a Plotly figure."""
-    layout = dict(
-        template="plotly_white",
-        paper_bgcolor=CHART_BG,
-        plot_bgcolor=CHART_BG,
-        font=dict(family=FONT_FAMILY, color=CHART_FONT_COLOR, size=12),
-        xaxis=dict(tickfont=dict(color=CHART_FONT_COLOR), title_font=dict(color=CHART_FONT_COLOR), gridcolor=CHART_GRID_COLOR),
-        yaxis=dict(tickfont=dict(color=CHART_FONT_COLOR), title_font=dict(color=CHART_FONT_COLOR), gridcolor=CHART_GRID_COLOR),
-        legend=dict(font=dict(color=CHART_FONT_COLOR)),
-    )
-    if height:
-        layout["height"] = height
-    fig.update_layout(**layout)
-    try:
-        fig.update_annotations(font_color=CHART_FONT_COLOR)
-    except Exception:
-        pass
-    return fig
-
-# Custom CSS: non-default Streamlit look
-def inject_css():
-    st.markdown("""
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-    /* Main area — dark text for readability */
-    .stApp { background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%); }
-    .block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1400px; color: #0f172a; }
-    .block-container p, .block-container span, .block-container label { color: #0f172a !important; }
-    /* Hero header */
-    .hero { 
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
-        margin: -1rem -1rem 0 -1rem; 
-        padding: 2rem 2rem 1.5rem; 
-        border-radius: 0 0 20px 20px;
-        box-shadow: 0 10px 40px rgba(15,23,42,0.2);
-    }
-    .hero h1 { 
-        color: #f8fafc; 
-        font-family: 'DM Sans', sans-serif; 
-        font-weight: 700; 
-        font-size: 1.85rem; 
-        letter-spacing: -0.02em;
-        margin: 0;
-    }
-    .hero p { 
-        color: #94a3b8; 
-        font-size: 0.95rem; 
-        margin: 0.4rem 0 0 0;
-    }
-    /* Metric cards — force dark text for readability */
-    div[data-testid="metric-container"] {
-        background: #ffffff;
-        padding: 1rem 1.25rem;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid #e2e8f0;
-    }
-    div[data-testid="metric-container"] [data-testid="stMetricLabel"],
-    div[data-testid="metric-container"] [data-testid="stMetricValue"],
-    div[data-testid="metric-container"] label {
-        color: #0f172a !important;
-    }
-    [data-testid="stMetricValue"] { font-family: 'DM Sans', sans-serif; font-weight: 700; color: #0f172a !important; }
-    /* Section titles */
-    .section-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
-        color: #0f172a;
-        letter-spacing: -0.01em;
-        margin: 1.5rem 0 0.75rem 0;
-        padding-bottom: 0.4rem;
-        border-bottom: 2px solid #0ea5e9;
-        display: inline-block;
-    }
-    /* Chart containers */
-    .chart-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 1rem;
-    }
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-    }
-    [data-testid="stSidebar"] .stMarkdown { color: #94a3b8; }
-    [data-testid="stSidebar"] h2 { color: #f8fafc !important; font-size: 0.95rem !important; }
-    [data-testid="stSidebar"] label { color: #cbd5e1 !important; }
-    [data-testid="stSidebar"] .stSlider label { color: #cbd5e1 !important; }
-    /* Footer */
-    .footer { 
-        text-align: center; 
-        color: #64748b; 
-        font-size: 0.8rem; 
-        margin-top: 2rem; 
-        padding: 1rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 def _parse_year_from_date(series):
     """Extract 4-digit year from date strings (M/D/YYYY) or datetime."""
@@ -251,7 +132,7 @@ def main():
     st.markdown("""
     <div class="hero">
         <h1>Police Misconduct Reports</h1>
-        <p>Boston Police Department — Internal Affairs Division (IAD) · Complaints with youth-related labels · 2011–2020</p>
+        <p>Boston Police Department — Internal Affairs Division (IAD) · Complaints with youth-related labels · 2011–2020. NOTE: Data from 2019 is missing</p>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
@@ -324,8 +205,8 @@ def main():
         labels={"year_received": "Year received", "unique_iads": "Unique IAD cases"},
         color_discrete_sequence=[COLORS["accent_soft"]],
     )
-    fig_time.update_layout(margin=dict(t=24, b=40), xaxis=dict(dtick=1), showlegend=False)
-    _chart_layout(fig_time)
+    fig_time.update_layout(title=dict(text=""), margin=dict(t=24, b=40), xaxis=dict(dtick=1), showlegend=False)
+    chart_layout(fig_time)
     st.plotly_chart(fig_time, use_container_width=True)
 
     st.markdown('<p class="section-title">Allegation types (unique IAD cases)</p>', unsafe_allow_html=True)
@@ -338,29 +219,32 @@ def main():
         labels={"unique_iads": "Unique IAD cases", "allegation_type": "Allegation type"},
         color_discrete_sequence=[COLORS["secondary"]],
     )
-    fig_alg.update_layout(margin=dict(t=24, b=40), yaxis=dict(autorange="reversed"), showlegend=False)
-    _chart_layout(fig_alg, height=400)
+    fig_alg.update_layout(title=dict(text=""), margin=dict(t=24, b=40), yaxis=dict(autorange="reversed"), showlegend=False)
+    chart_layout(fig_alg, height=400)
     st.plotly_chart(fig_alg, use_container_width=True)
 
     st.markdown('<p class="section-title">Finding and disposition (unique IAD cases)</p>', unsafe_allow_html=True)
+    st.caption("Two outcome fields: **Finding** = investigative result (e.g. Sustained, Exonerated); **Disposition** = formal administrative outcome. Each pie shows how many unique IAD cases have that value (a case can appear in more than one slice if it has multiple officers/outcomes).")
     c1, c2 = st.columns(2)
     with c1:
         finding_iads = data.assign(finding=data["finding_x"].replace("", "Unknown")).groupby("finding")["ia_no"].nunique()
         fig_find = px.pie(
             values=finding_iads.values, names=finding_iads.index,
             color_discrete_sequence=px.colors.sequential.Blues_r,
+            title="By finding (investigative result)",
         )
-        fig_find.update_layout(margin=dict(t=24, b=24), showlegend=True, legend=dict(orientation="h"))
-        _chart_layout(fig_find)
+        fig_find.update_layout(margin=dict(t=48, b=24), showlegend=True, legend=dict(orientation="h"))
+        chart_layout(fig_find)
         st.plotly_chart(fig_find, use_container_width=True)
     with c2:
         disp_iads = data.assign(disposition=data["disposition_x"].replace("", "Unknown")).groupby("disposition")["ia_no"].nunique()
         fig_disp = px.pie(
             values=disp_iads.values, names=disp_iads.index,
             color_discrete_sequence=px.colors.sequential.Greens_r,
+            title="By disposition (administrative outcome)",
         )
-        fig_disp.update_layout(margin=dict(t=24, b=24), showlegend=True, legend=dict(orientation="h"))
-        _chart_layout(fig_disp)
+        fig_disp.update_layout(margin=dict(t=48, b=24), showlegend=True, legend=dict(orientation="h"))
+        chart_layout(fig_disp)
         st.plotly_chart(fig_disp, use_container_width=True)
 
     st.markdown('<p class="section-title">Youth-related vs other (unique IAD cases by allegation type)</p>', unsafe_allow_html=True)
@@ -378,8 +262,12 @@ def main():
                 labels={"unique_iads": "Unique IAD cases", "allegation": "Allegation"}, title="Youth-related",
                 color_discrete_sequence=[COLORS["youth"]],
             )
-            fig_y.update_layout(yaxis=dict(autorange="reversed"), margin=dict(t=36, b=40))
-            _chart_layout(fig_y, height=340)
+            fig_y.update_layout(
+                yaxis=dict(autorange="reversed", automargin=True),
+                margin=dict(t=36, b=56, l=220),
+                xaxis_title_standoff=12,
+            )
+            chart_layout(fig_y, height=340)
             st.plotly_chart(fig_y, use_container_width=True)
         else:
             st.info("No youth-related IAD cases in current filters.")
@@ -392,21 +280,33 @@ def main():
                 labels={"unique_iads": "Unique IAD cases", "allegation": "Allegation"}, title="Not youth-related",
                 color_discrete_sequence=[COLORS["adult"]],
             )
-            fig_o.update_layout(yaxis=dict(autorange="reversed"), margin=dict(t=36, b=40))
-            _chart_layout(fig_o, height=340)
+            fig_o.update_layout(
+                yaxis=dict(autorange="reversed", automargin=True),
+                margin=dict(t=36, b=56, l=220),
+                xaxis_title_standoff=12,
+            )
+            chart_layout(fig_o, height=340)
             st.plotly_chart(fig_o, use_container_width=True)
 
     st.markdown('<p class="section-title">Officer rank (unique IAD cases per rank)</p>', unsafe_allow_html=True)
     rank_iads = data.assign(rank=data["rank_x"].replace("", "Unknown")).groupby("rank")["ia_no"].nunique()
-    rank_iads = rank_iads[rank_iads.index != "Unknown"] if "Unknown" in rank_iads.index else rank_iads
+    # Drop Unknown, NaN, and "nan" so they don't show as categories
     rank_df = rank_iads.reset_index()
     rank_df.columns = ["rank", "unique_iads"]
+    rank_df = rank_df[
+        rank_df["rank"].notna()
+        & (rank_df["rank"].astype(str).str.strip().str.lower() != "nan")
+        & (rank_df["rank"].astype(str).str.strip() != "")
+        & (rank_df["rank"] != "Unknown")
+    ]
+    rank_df = rank_df.sort_values("unique_iads", ascending=False)
     fig_rank = px.bar(
         rank_df, x="rank", y="unique_iads",
-        labels={"rank": "Rank", "unique_iads": "Unique IAD cases"}, color_discrete_sequence=[COLORS["neutral"]],
+        labels={"rank": "Rank", "unique_iads": "Unique IAD cases"},
+        color_discrete_sequence=[COLORS["neutral"]],
     )
-    fig_rank.update_layout(margin=dict(t=24, b=60), xaxis_tickangle=-45)
-    _chart_layout(fig_rank, height=360)
+    fig_rank.update_layout(title=dict(text=""), margin=dict(t=24, b=60), xaxis_tickangle=-45)
+    chart_layout(fig_rank, height=360)
     st.plotly_chart(fig_rank, use_container_width=True)
 
     # Missing entries (filtered data)

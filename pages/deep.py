@@ -1,13 +1,13 @@
 """
 Dashboard for cleaned IR Fall 2025 incident data.
-Professional, distinctive design.
-Connected to IAD complaints data when available (by officer name).
+Uses shared Justice Lens styling (arnald-based). Connected to IAD complaints data when available (by officer name).
 """
 import os
-import glob
 import streamlit as st
 import pandas as pd
 import altair as alt
+
+from shared_styles import inject_css, hero_html, CHART_FONT_COLOR, CHART_GRID_COLOR
 
 st.set_page_config(
     page_title="Justice Lens — IR Dashboard",
@@ -16,113 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom theme: dark slate + amber accent — stands out, feels serious and civic
-CUSTOM_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
-/* Override Streamlit defaults */
-.stApp { background: linear-gradient(180deg, #0c1222 0%, #111827 50%, #0f172a 100%); }
-.main .block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1400px; }
-h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif !important; }
-
-/* Hide default Streamlit branding for cleaner look */
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header { visibility: hidden; }
-
-/* Hero header */
-.hero {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(245, 158, 11, 0.25);
-}
-.hero h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #f8fafc;
-    letter-spacing: -0.02em;
-    margin: 0;
-}
-.hero .tagline {
-    font-size: 0.95rem;
-    color: #94a3b8;
-    margin-top: 0.35rem;
-    font-weight: 500;
-}
-.hero .accent-bar {
-    width: 48px;
-    height: 3px;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
-    border-radius: 2px;
-    margin-top: 0.75rem;
-}
-
-/* Metric cards — custom cards with accent */
-.metric-card {
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    border-left: 3px solid #f59e0b;
-    border-radius: 10px;
-    padding: 1.25rem 1rem;
-    margin-bottom: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-}
-.metric-card .label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #94a3b8;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-.metric-card .value {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #f8fafc;
-    letter-spacing: -0.02em;
-}
-
-/* Section headers */
-.section-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #cbd5e1;
-    margin: 1.75rem 0 0.75rem 0;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-}
-.chart-card {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
-}
-
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f172a 0%, #0c1222 100%);
-    border-right: 1px solid rgba(148, 163, 184, 0.1);
-}
-[data-testid="stSidebar"] .stMarkdown { color: #94a3b8; }
-[data-testid="stSidebar"] h2 { color: #e2e8f0 !important; font-size: 0.9rem !important; }
-[data-testid="stSidebar"] .stCaption { color: #64748b !important; }
-
-/* Dataframe styling */
-div[data-testid="stDataFrame"] {
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
-}
-</style>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+inject_css()
 
 # Load data (cached) — incident CSV is in pages/; add Officer = Name # Badge
 @st.cache_data
@@ -197,9 +91,14 @@ if "Weapon/Force Involved" in df.columns:
 st.sidebar.divider()
 st.sidebar.caption(f"Showing **{len(df):,}** of {len(df_raw):,} records")
 
+# Hero
+st.markdown(
+    hero_html("Incident Reports", "Cleaned IR Fall 2025 · Explore by date, district, and force type"),
+    unsafe_allow_html=True,
+)
+st.markdown("<br>", unsafe_allow_html=True)
 
-
-# Metric cards (custom HTML for full control)
+# Metrics (shared styling via st.metric)
 n_incidents = len(df)
 n_officers = df["Officer Name"].nunique() if "Officer Name" in df.columns else 0
 n_districts = df["Event District"].nunique() if "Event District" in df.columns else 0
@@ -233,13 +132,7 @@ if iad_sustained_lookup:
 m_cols = st.columns(len(metrics))
 for col, (label, value) in zip(m_cols, metrics):
     with col:
-        st.markdown(
-            f'<div class="metric-card">'
-            f'<div class="label">{label}</div>'
-            f'<div class="value">{value}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        st.metric(label, value)
 
 if iad_lookup and n_officers:
     pct = 100 * officers_with_complaints / n_officers
@@ -301,6 +194,49 @@ if iad_lookup and "Officer" in df.columns:
     else:
         st.caption("No officers in the current filter have IAD complaints on record.")
 
+# Heatmap: District × Hour (or Day of week)
+st.markdown('<p class="section-title">Heatmap — incidents by district & time</p>', unsafe_allow_html=True)
+heat_df = df.copy()
+if "Date" in heat_df.columns and "Event District" in heat_df.columns:
+    heat_df["Date"] = pd.to_datetime(heat_df["Date"], errors="coerce")
+    heat_df = heat_df.dropna(subset=["Date", "Event District"])
+    heat_df["hour"] = heat_df["Date"].dt.hour
+    heat_df["district"] = heat_df["Event District"].astype(str)
+    heat_df = heat_df[~heat_df["district"].isin(["", "nan"])]
+    agg = heat_df.groupby(["district", "hour"]).size().reset_index(name="incidents")
+    if len(agg) > 0:
+        district_order = agg.groupby("district")["incidents"].sum().sort_values(ascending=False).index.tolist()
+        heat = (
+            alt.Chart(agg)
+            .mark_rect()
+            .encode(
+                x=alt.X("hour:O", title="Hour of day", axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("district:N", title="District", sort=district_order),
+                color=alt.Color("incidents:Q", title="Incidents", scale=alt.Scale(scheme="oranges")),
+                tooltip=["district", "hour", "incidents"],
+            )
+            .properties(height=400, background="#ffffff")
+            .configure_view(fill="#ffffff")
+            .configure_axis(
+                labelColor=CHART_FONT_COLOR,
+                titleColor=CHART_FONT_COLOR,
+                gridColor=CHART_GRID_COLOR,
+                labelFontSize=11,
+                titleFontSize=12,
+            )
+            .configure_legend(
+                labelColor=CHART_FONT_COLOR,
+                titleColor=CHART_FONT_COLOR,
+                labelFontSize=11,
+                titleFontSize=12,
+            )
+        )
+        st.altair_chart(heat, use_container_width=True)
+    else:
+        st.caption("No data for heatmap.")
+else:
+    st.caption("Date and District required for heatmap.")
+
 # Map — density heatmap style with pydeck
 if "Offense Latitude" in df.columns and "Offense Longitude" in df.columns:
     st.markdown('<p class="section-title">Incident locations (density)</p>', unsafe_allow_html=True)
@@ -319,7 +255,7 @@ if "Offense Latitude" in df.columns and "Offense Longitude" in df.columns:
                 threshold=0.5,
             )
             view = pdk.ViewState(latitude=map_df["Offense Latitude"].mean(), longitude=map_df["Offense Longitude"].mean(), zoom=10, pitch=0)
-            st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view, map_style="dark", tooltip=False))
+            st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view, map_style="light", tooltip=False))
         except Exception:
             map_df = map_df.rename(columns={"Offense Latitude": "lat", "Offense Longitude": "lon"})
             st.map(map_df, use_container_width=True)
