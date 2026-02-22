@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
-from shared_styles import inject_css, chart_layout, COLORS, hero_html
+from shared_styles import inject_css, chart_layout, COLORS, hero_html, sidebar_page_links
 
 st.set_page_config(page_title="Boston Youth Arrests", layout="wide", initial_sidebar_state="expanded")
 
@@ -41,6 +41,7 @@ def main():
     df_raw = load_data()
 
     # --- SIDEBAR FILTERS ---
+    sidebar_page_links()
     st.sidebar.header("Filters")
 
     show_juvenile_only = st.sidebar.toggle("Juvenile Only", value=False)
