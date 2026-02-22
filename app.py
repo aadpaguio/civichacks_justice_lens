@@ -1,24 +1,15 @@
 """
-Dashboard – main entry.
+Dashboard – main entry. Redirects to first page.
 Run with: streamlit run app.py
 """
 import streamlit as st
 
 st.set_page_config(
-    page_title="Dashboard",
-    page_icon="📊",
+    page_title="Justice Lens",
+    page_icon="◉",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-with st.sidebar:
-    st.header("Navigation")
-    st.caption("Use the list above to switch pages.")
-    st.divider()
-
-st.title("📊 Dashboard")
-st.markdown("Welcome. Use the sidebar to switch between pages.")
-st.divider()
-
-# Placeholder for home content
-st.info("Select a page from the sidebar to get started.")
+# No main page content — go straight to first dashboard
+st.switch_page("pages/arnald.py")
