@@ -295,119 +295,115 @@ def main():
     data = df.loc[mask].copy()
     data["allegation_normalized"] = data["allegation_x"].apply(_normalize_allegation)
 
-    # ---- Summary metrics ----
-    unique_incidents = data["ia_no"].nunique()
-    total_allegations = len(data)
-    youth_count = (data["label"] == "YES").sum()
-    sustained = (data["finding_x"] == "Sustained").sum()
-    sustained_pct = (100 * sustained / total_allegations) if total_allegations else 0
+    # ---- Summary metrics (all by unique IAD cases) ----
+    unique_iads = data["ia_no"].nunique()
+    youth_iads = data.loc[data["label"] == "YES", "ia_no"].nunique()
+    sustained_iads = data.loc[data["finding_x"] == "Sustained", "ia_no"].nunique()
+    sustained_pct = (100 * sustained_iads / unique_iads) if unique_iads else 0
 
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        st.metric("Total allegations", f"{total_allegations:,}", help="Rows in filtered data (one per officer/allegation)")
+        st.metric("Unique IAD cases", f"{unique_iads:,}", help="Distinct IAD case numbers (what matters)")
     with col2:
-        st.metric("Unique incidents", f"{unique_incidents:,}", help="Distinct IAD case numbers")
+        st.metric("Youth-related IADs", f"{youth_iads:,}", help="IAD cases labeled as involving youth")
     with col3:
-        st.metric("Youth-related", f"{youth_count:,}", help="Allegations labeled as involving youth")
+        st.metric("Sustained IADs", f"{sustained_iads:,}", help="IAD cases with at least one Sustained finding")
     with col4:
-        st.metric("Sustained", f"{sustained:,}", help="Findings of Sustained")
+        st.metric("Sustained %", f"{sustained_pct:.1f}%", help="Share of unique IAD cases with Sustained finding")
     with col5:
-        st.metric("Sustained %", f"{sustained_pct:.1f}%", help="Share of allegations with Sustained finding")
+        st.metric("Allegation rows", f"{len(data):,}", help="Total rows (officer/allegation); for reference")
 
-    # ---- Charts ----
+    # ---- Charts (all by unique IAD cases) ----
     st.markdown('<p class="section-title">Complaints over time</p>', unsafe_allow_html=True)
     by_year = data.groupby("year_received", dropna=False).agg(
-        allegations=("ia_no", "count"),
-        incidents=("ia_no", "nunique"),
+        unique_iads=("ia_no", "nunique"),
     ).reset_index()
     by_year = by_year[by_year["year_received"].notna()].sort_values("year_received")
     fig_time = px.bar(
-        by_year, x="year_received", y="allegations",
-        labels={"year_received": "Year received", "allegations": "Number of allegations"},
+        by_year, x="year_received", y="unique_iads",
+        labels={"year_received": "Year received", "unique_iads": "Unique IAD cases"},
         color_discrete_sequence=[COLORS["accent_soft"]],
     )
     fig_time.update_layout(margin=dict(t=24, b=40), xaxis=dict(dtick=1), showlegend=False)
     _chart_layout(fig_time)
     st.plotly_chart(fig_time, use_container_width=True)
 
-    st.markdown('<p class="section-title">Allegation types</p>', unsafe_allow_html=True)
-    alg = data.loc[data["allegation_normalized"] != "", "allegation_normalized"].value_counts().head(12)
+    st.markdown('<p class="section-title">Allegation types (unique IAD cases)</p>', unsafe_allow_html=True)
+    alg_data = data.loc[data["allegation_normalized"] != ""]
+    alg = alg_data.groupby("allegation_normalized")["ia_no"].nunique().sort_values(ascending=False).head(12)
     alg_df = alg.reset_index()
-    alg_df.columns = ["allegation_type", "count"]
+    alg_df.columns = ["allegation_type", "unique_iads"]
     fig_alg = px.bar(
-        alg_df, x="count", y="allegation_type", orientation="h",
-        labels={"count": "Count", "allegation_type": "Allegation type"},
+        alg_df, x="unique_iads", y="allegation_type", orientation="h",
+        labels={"unique_iads": "Unique IAD cases", "allegation_type": "Allegation type"},
         color_discrete_sequence=[COLORS["secondary"]],
     )
     fig_alg.update_layout(margin=dict(t=24, b=40), yaxis=dict(autorange="reversed"), showlegend=False)
     _chart_layout(fig_alg, height=400)
     st.plotly_chart(fig_alg, use_container_width=True)
 
-    st.markdown('<p class="section-title">Finding and disposition</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">Finding and disposition (unique IAD cases)</p>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        finding_counts = data["finding_x"].replace("", "Unknown").value_counts()
+        finding_iads = data.assign(finding=data["finding_x"].replace("", "Unknown")).groupby("finding")["ia_no"].nunique()
         fig_find = px.pie(
-            values=finding_counts.values, names=finding_counts.index,
+            values=finding_iads.values, names=finding_iads.index,
             color_discrete_sequence=px.colors.sequential.Blues_r,
         )
         fig_find.update_layout(margin=dict(t=24, b=24), showlegend=True, legend=dict(orientation="h"))
         _chart_layout(fig_find)
         st.plotly_chart(fig_find, use_container_width=True)
     with c2:
-        disp_counts = data["disposition_x"].replace("", "Unknown").value_counts()
+        disp_iads = data.assign(disposition=data["disposition_x"].replace("", "Unknown")).groupby("disposition")["ia_no"].nunique()
         fig_disp = px.pie(
-            values=disp_counts.values, names=disp_counts.index,
+            values=disp_iads.values, names=disp_iads.index,
             color_discrete_sequence=px.colors.sequential.Greens_r,
         )
         fig_disp.update_layout(margin=dict(t=24, b=24), showlegend=True, legend=dict(orientation="h"))
         _chart_layout(fig_disp)
         st.plotly_chart(fig_disp, use_container_width=True)
 
-    st.markdown('<p class="section-title">Youth-related vs other allegations</p>', unsafe_allow_html=True)
-    # Use normalized allegation labels; exclude empty
-    youth_alg_series = data[data["label"] == "YES"]["allegation_normalized"]
-    youth_alg_series = youth_alg_series[(youth_alg_series != "") & (youth_alg_series.notna())]
-    youth_alg = youth_alg_series.value_counts().head(10)
-    other_alg_series = data[data["label"] == "NO"]["allegation_normalized"]
-    other_alg_series = other_alg_series[(other_alg_series != "") & (other_alg_series.notna())]
-    other_alg = other_alg_series.value_counts().head(10)
+    st.markdown('<p class="section-title">Youth-related vs other (unique IAD cases by allegation type)</p>', unsafe_allow_html=True)
+    youth_data = data[(data["label"] == "YES") & (data["allegation_normalized"] != "") & (data["allegation_normalized"].notna())]
+    other_data = data[(data["label"] == "NO") & (data["allegation_normalized"] != "") & (data["allegation_normalized"].notna())]
+    youth_alg = youth_data.groupby("allegation_normalized")["ia_no"].nunique().sort_values(ascending=False).head(10)
+    other_alg = other_data.groupby("allegation_normalized")["ia_no"].nunique().sort_values(ascending=False).head(10)
     col_a, col_b = st.columns(2)
     with col_a:
         if not youth_alg.empty:
             youth_df = youth_alg.reset_index()
-            youth_df.columns = ["allegation", "count"]
+            youth_df.columns = ["allegation", "unique_iads"]
             fig_y = px.bar(
-                youth_df, x="count", y="allegation", orientation="h",
-                labels={"count": "Count", "allegation": "Allegation"}, title="Youth-related",
+                youth_df, x="unique_iads", y="allegation", orientation="h",
+                labels={"unique_iads": "Unique IAD cases", "allegation": "Allegation"}, title="Youth-related",
                 color_discrete_sequence=[COLORS["youth"]],
             )
             fig_y.update_layout(yaxis=dict(autorange="reversed"), margin=dict(t=36, b=40))
             _chart_layout(fig_y, height=340)
             st.plotly_chart(fig_y, use_container_width=True)
         else:
-            st.info("No youth-related allegations in current filters.")
+            st.info("No youth-related IAD cases in current filters.")
     with col_b:
         if not other_alg.empty:
             other_df = other_alg.reset_index()
-            other_df.columns = ["allegation", "count"]
+            other_df.columns = ["allegation", "unique_iads"]
             fig_o = px.bar(
-                other_df, x="count", y="allegation", orientation="h",
-                labels={"count": "Count", "allegation": "Allegation"}, title="Not youth-related",
+                other_df, x="unique_iads", y="allegation", orientation="h",
+                labels={"unique_iads": "Unique IAD cases", "allegation": "Allegation"}, title="Not youth-related",
                 color_discrete_sequence=[COLORS["adult"]],
             )
             fig_o.update_layout(yaxis=dict(autorange="reversed"), margin=dict(t=36, b=40))
             _chart_layout(fig_o, height=340)
             st.plotly_chart(fig_o, use_container_width=True)
 
-    st.markdown('<p class="section-title">Officer rank (subject of allegation)</p>', unsafe_allow_html=True)
-    rank_counts = data["rank_x"].replace("", "Unknown").value_counts()
-    rank_counts = rank_counts[rank_counts.index != "Unknown"] if "Unknown" in rank_counts.index else rank_counts
-    rank_df = rank_counts.reset_index()
-    rank_df.columns = ["rank", "count"]
+    st.markdown('<p class="section-title">Officer rank (unique IAD cases per rank)</p>', unsafe_allow_html=True)
+    rank_iads = data.assign(rank=data["rank_x"].replace("", "Unknown")).groupby("rank")["ia_no"].nunique()
+    rank_iads = rank_iads[rank_iads.index != "Unknown"] if "Unknown" in rank_iads.index else rank_iads
+    rank_df = rank_iads.reset_index()
+    rank_df.columns = ["rank", "unique_iads"]
     fig_rank = px.bar(
-        rank_df, x="rank", y="count",
-        labels={"rank": "Rank", "count": "Count"}, color_discrete_sequence=[COLORS["neutral"]],
+        rank_df, x="rank", y="unique_iads",
+        labels={"rank": "Rank", "unique_iads": "Unique IAD cases"}, color_discrete_sequence=[COLORS["neutral"]],
     )
     fig_rank.update_layout(margin=dict(t=24, b=60), xaxis_tickangle=-45)
     _chart_layout(fig_rank, height=360)
