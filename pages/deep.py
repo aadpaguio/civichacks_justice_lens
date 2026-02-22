@@ -197,7 +197,13 @@ if "Weapon/Force Involved" in df.columns:
 st.sidebar.divider()
 st.sidebar.caption(f"Showing **{len(df):,}** of {len(df_raw):,} records")
 
-
+st.markdown(
+    '<div class="hero">'
+    '<h1>Incident Reports</h1>'
+    '<div class="accent-bar"></div>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 # Metric cards (custom HTML for full control)
 n_incidents = len(df)
