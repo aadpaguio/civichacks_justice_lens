@@ -124,14 +124,20 @@ div[data-testid="stDataFrame"] {
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# Load data (cached)
+# Load data (cached) — incident CSV is in pages/; add Officer = Name # Badge
 @st.cache_data
 def load_data():
     base = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base, "..", "data", "ir_fall_2025_cleaned.csv")
+    path = os.path.join(base, "ir_fall_2025_cleaned.csv")
     df = pd.read_csv(path)
     if "Date" in df.columns:
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    if "Officer Name" in df.columns and "Badge Number" in df.columns:
+        df["Officer"] = (
+            df["Officer Name"].astype(str).str.strip()
+            + " #"
+            + df["Badge Number"].astype(str).str.strip()
+        )
     return df
 
 
@@ -175,17 +181,6 @@ with st.sidebar:
     st.divider()
     st.markdown("**Filters**")
     st.caption("Narrow the dataset")
-
-if "Date" in df.columns and pd.api.types.is_datetime64_any_dtype(df["Date"]):
-    df = df.dropna(subset=["Date"])
-    min_d, max_d = df["Date"].min().date(), df["Date"].max().date()
-    date_range = st.sidebar.date_input("Date range", value=(min_d, max_d), min_value=min_d, max_value=max_d)
-    if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
-        df = df[(df["Date"].dt.date >= date_range[0]) & (df["Date"].dt.date <= date_range[1])]
-    elif hasattr(date_range, "year"):
-        df = df[df["Date"].dt.date == date_range]
-else:
-    st.sidebar.info("Date column missing or not parsed.")
 
 if "Event District" in df.columns:
     districts = ["All"] + sorted([x for x in df["Event District"].dropna().astype(str).unique() if x and x != "nan"])
@@ -260,23 +255,12 @@ if iad_lookup and n_officers:
 
 # Charts
 st.markdown('<p class="section-title">Trends & distribution</p>', unsafe_allow_html=True)
-c1, c2 = st.columns(2)
-
-with c1:
-    st.markdown("**Incidents by date**")
-    if "Date" in df.columns and len(df) > 0:
-        daily = df.set_index("Date").resample("D").size().reset_index(name="Incidents")
-        st.line_chart(daily.set_index("Date"))
-    else:
-        st.info("No date data to plot.")
-
-with c2:
-    st.markdown("**Incidents by district**")
-    if "Event District" in df.columns:
-        dist_counts = df["Event District"].value_counts().sort_index()
-        st.bar_chart(dist_counts)
-    else:
-        st.info("No district data.")
+st.markdown("**Incidents by district**")
+if "Event District" in df.columns:
+    dist_counts = df["Event District"].value_counts().sort_index()
+    st.bar_chart(dist_counts)
+else:
+    st.info("No district data.")
 
 # Weapon/force — exclude empty, none, (none), nan
 if "Weapon/Force Involved" in df.columns:
@@ -350,9 +334,3 @@ if "Offense Latitude" in df.columns and "Offense Longitude" in df.columns:
     else:
         st.caption("No valid coordinates to display.")
 
-# Data table
-st.markdown('<p class="section-title">Records</p>', unsafe_allow_html=True)
-display_cols = [c for c in ["Date", "Time", "Officer Name", "Event District", "Event Street Address", "Weapon/Force Involved", "Suspect Count", "Total Charges", "Charge I"] if c in df.columns]
-table_df = df[display_cols] if display_cols else df
-st.dataframe(table_df.head(1000), use_container_width=True, hide_index=True)
-st.caption(f"First 1,000 of {len(df):,} rows. Use the sidebar to filter.")
